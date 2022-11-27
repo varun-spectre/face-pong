@@ -399,9 +399,9 @@ function playerPaddleMovement() {
     0
   );
     var diff = Math.abs(paddlePos - nosePos);
-  console.log(nosePos.toFixed(2), paddlePos.toFixed(2));
+  console.log(diff.toFixed(2), nosePos.toFixed(2), paddlePos.toFixed(2));
   // move left
-  if (diff < 10 && nosePos < paddlePos) {
+  if (diff > 1 && nosePos < paddlePos) {
     // if paddle is not touching the side of table
     // we move
     if (paddle1.position.y < fieldHeight * 0.45) {
@@ -415,7 +415,7 @@ function playerPaddleMovement() {
     }
   }
   // move right
-  else if (diff < 10 && nosePos > paddlePos) {
+  else if (diff > 1 && nosePos > paddlePos) {
     // if paddle is not touching the side of table
     // we move
     if (paddle1.position.y > -fieldHeight * 0.45) {
