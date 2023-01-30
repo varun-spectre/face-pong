@@ -1,4 +1,5 @@
 var nosePos = 50;
+// import THREE from "./scripts/three.module.js"
 
 // --------------------------------------------- //
 // ------- 3D PONG built with Three.JS --------- //
@@ -24,7 +25,7 @@ var paddle1DirY = 0,
   paddleSpeed = 3;
 
 // ball variables
-var ball, paddle1, paddle2;
+var ball, paddle1, paddle2, footerPlane;
 var ballDirX = 1,
   ballDirY = 1,
   ballSpeed = 2;
@@ -38,6 +39,15 @@ var maxScore = 7;
 // set opponent reflexes (0 - easiest, 1 - hardest)
 var difficulty = 0.2;
 
+
+var canvasCtx, texture, img;
+// texture.needsUpdate = true;
+
+var planeWidth = fieldWidth,
+    planeHeight = fieldHeight,
+    planeQuality = 10;
+
+
 // ------------------------------------- //
 // ------- GAME FUNCTIONS -------------- //
 // ------------------------------------- //
@@ -50,7 +60,7 @@ function setup() {
   // now reset player and opponent scores
   score1 = 0;
   score2 = 0;
-
+  // console.log("in setup")
   // set up all the 3D objects in the scene
   createScene();
 
@@ -70,6 +80,7 @@ function createScene() {
     FAR = 10000;
 
   var c = document.getElementById("gameCanvas");
+
 
   // create a WebGL renderer, camera
   // and a scene
@@ -92,9 +103,9 @@ function createScene() {
   c.appendChild(renderer.domElement);
 
   // set up the playing surface plane
-  var planeWidth = fieldWidth,
-    planeHeight = fieldHeight,
-    planeQuality = 10;
+  // var planeWidth = fieldWidth,
+  //   planeHeight = fieldHeight,
+  //   planeQuality = 10;
 
   // create the paddle1's material
   var paddle1Material = new THREE.MeshLambertMaterial({
@@ -136,9 +147,41 @@ function createScene() {
   scene.add(plane);
   plane.receiveShadow = true;
 
+
+  canvasCtx = document.getElementsByClassName("output_canvas")[0].getContext("2d");
+  texture = new THREE.CanvasTexture(canvasCtx.canvas);
+  // console.log("in scene")
+  texture.needsUpdate = true;
+
+  const footerPlaneMaterial = new THREE.MeshBasicMaterial({
+    map: texture
+  });
+
+  const footerPlaneGeometry = new THREE.PlaneGeometry(
+    planeWidth * 0.05, 
+    planeHeight *0.1,
+    planeQuality*0.5,
+    planeQuality*0.5
+  )
+
+  img = new THREE.MeshBasicMaterial({ //CHANGED to MeshBasicMaterial
+    map: texture,
+  });
+
+  footerPlane = new THREE.Mesh(footerPlaneGeometry, footerPlaneMaterial);
+  
+
+  footerPlane.rotation.z = -Math.PI / 2;
+  footerPlane.rotation.x = -Math.PI;
+  scene.add(footerPlane);
+  footerPlane.receiveShadow = false;
+
+
+  
+
   var table = new THREE.Mesh(
-    new THREE.CubeGeometry(
-      planeWidth * 1.05, // this creates the feel of a billiards table, with a lining
+    new THREE.BoxGeometry(
+      planeWidth * 1.75, // this creates the feel of a billiards table, with a lining
       planeHeight * 1.03,
       100, // an arbitrary depth, the camera can't see much of it anyway
       planeQuality,
@@ -187,7 +230,7 @@ function createScene() {
   paddleQuality = 1;
 
   paddle1 = new THREE.Mesh(
-    new THREE.CubeGeometry(
+    new THREE.BoxGeometry(
       paddleWidth,
       paddleHeight,
       paddleDepth,
@@ -205,7 +248,7 @@ function createScene() {
   paddle1.castShadow = true;
 
   paddle2 = new THREE.Mesh(
-    new THREE.CubeGeometry(
+    new THREE.BoxGeometry(
       paddleWidth,
       paddleHeight,
       paddleDepth,
@@ -222,19 +265,24 @@ function createScene() {
   paddle2.receiveShadow = true;
   paddle2.castShadow = true;
 
+  footerPlane.receiveShadow = true;
+  footerPlane.castShadow = true;
+
   // set paddles on each side of the table
   paddle1.position.x = -fieldWidth / 2 + paddleWidth;
   paddle2.position.x = fieldWidth / 2 - paddleWidth;
+  footerPlane.position.x = -fieldWidth / 2 - 15;
 
   // lift paddles over playing surface
   paddle1.position.z = paddleDepth;
   paddle2.position.z = paddleDepth;
+  footerPlane.position.z = paddleDepth;
 
   // we iterate 10x (5x each side) to create pillars to show off shadows
   // this is for the pillars on the left
   for (var i = 0; i < 5; i++) {
     var backdrop = new THREE.Mesh(
-      new THREE.CubeGeometry(30, 30, 300, 1, 1, 1),
+      new THREE.BoxGeometry(30, 30, 300, 1, 1, 1),
 
       pillarMaterial
     );
@@ -250,7 +298,7 @@ function createScene() {
   // this is for the pillars on the right
   for (var i = 0; i < 5; i++) {
     var backdrop = new THREE.Mesh(
-      new THREE.CubeGeometry(30, 30, 300, 1, 1, 1),
+      new THREE.BoxGeometry(30, 30, 300, 1, 1, 1),
 
       pillarMaterial
     );
@@ -266,7 +314,7 @@ function createScene() {
   // finally we finish by adding a ground plane
   // to show off pretty shadows
   var ground = new THREE.Mesh(
-    new THREE.CubeGeometry(1000, 1000, 3, 1, 1, 1),
+    new THREE.BoxGeometry(1000, 1000, 3, 1, 1, 1),
 
     groundMaterial
   );
@@ -301,16 +349,31 @@ function createScene() {
 
 function draw() {
   // draw THREE.JS scene
+  canvasCtx = document.getElementsByClassName("output_canvas")[0].getContext("2d");  
+  texture = new THREE.CanvasTexture(canvasCtx.canvas);
+  // texture.wrapS = THREE.MirroredRepeatWrapping;
+  // console.log("in draw")
+  texture.needsUpdate = true;
+  img = new THREE.MeshBasicMaterial({ //CHANGED to MeshBasicMaterial
+    map: texture,
+  });
+  footerPlane.material = img;
+  footerPlane.material.side = THREE.BackSide
   renderer.render(scene, camera);
+
   // loop draw function call
   requestAnimationFrame(draw);
-
   ballPhysics();
   paddlePhysics();
   cameraPhysics();
   playerPaddleMovement();
   opponentPaddleMovement();
+  footerPlaneMovement();
 }
+
+// function textureUpdate(){
+
+// }
 
 function ballPhysics() {
   // if ball goes off the 'left' side (Player's side)
@@ -382,7 +445,8 @@ function opponentPaddleMovement() {
   // this is done because we stretch the paddle at some points
   // stretching is done when paddle touches side of table and when paddle hits ball
   // by doing this here, we ensure paddle always comes back to default size
-  paddle2.scale.y += (1 - paddle2.scale.y) * 0.2;
+  // paddle2.scale.y += (1 - paddle2.scale.y) * 0.2;
+  paddle2.scale.z += (1 - paddle2.scale.z) * 0.2;
 }
 
 function map(x, in_min, in_max, out_min, out_max) {
@@ -398,8 +462,9 @@ function playerPaddleMovement() {
     100,
     0
   );
+
     var diff = Math.abs(paddlePos - nosePos);
-  console.log(diff.toFixed(2), nosePos.toFixed(2), paddlePos.toFixed(2));
+  // console.log(diff.toFixed(2), nosePos.toFixed(2), paddlePos.toFixed(2));
   // move left
   if (diff > 1 && nosePos < paddlePos) {
     // if paddle is not touching the side of table
@@ -439,6 +504,58 @@ function playerPaddleMovement() {
   paddle1.position.y += paddle1DirY;
 }
 
+function footerPlaneMovement() {
+  var paddlePos = map(
+    footerPlane.position.y,
+    -90,
+    90,
+    100,
+    0
+  );
+
+    var diff = Math.abs(paddlePos - nosePos);
+  // console.log(diff.toFixed(2), nosePos.toFixed(2), paddlePos.toFixed(2));
+  // move left
+  if (diff > 1 && nosePos < paddlePos) {
+    // if paddle is not touching the side of table
+    // we move
+    if (footerPlane.position.y < fieldHeight * 0.45) {
+      footerPlaneDirY = paddleSpeed * 0.5;
+    }
+    // else we don't move and stretch the paddle
+    // to indicate we can't move
+    else {
+      footerPlaneDirY = 0;
+      footerPlane.scale.z += (10 - footerPlane.scale.z) * 0.2;
+    }
+  }
+  // move right
+  else if (diff > 1 && nosePos > paddlePos) {
+    // if paddle is not touching the side of table
+    // we move
+    if (footerPlane.position.y > -fieldHeight * 0.45) {
+      footerPlaneDirY = -paddleSpeed * 0.5;
+    }
+    // else we don't move and stretch the paddle
+    // to indicate we can't move
+    else {
+      footerPlaneDirY = 0;
+      footerPlane.scale.z += (10 - footerPlane.scale.z) * 0.2;
+    }
+  }
+  // else don't move paddle
+  else {
+    // stop the paddle
+    footerPlaneDirY = 0;
+  }
+
+  footerPlane.scale.y += (1 - footerPlane.scale.y) * 0.2;
+  footerPlane.scale.z += (1 - footerPlane.scale.z) * 0.2;
+  footerPlane.position.y += footerPlaneDirY;
+}
+
+
+
 // Handles camera and lighting logic
 function cameraPhysics() {
   // we can easily notice shadows if we dynamically move lights during the game
@@ -476,7 +593,8 @@ function paddlePhysics() {
       // and if ball is travelling towards player (-ve direction)
       if (ballDirX < 0) {
         // stretch the paddle to indicate a hit
-        paddle1.scale.y = 15;
+        paddle1.scale.z = 2;
+        // paddle1.scale.y = 15; removed this
         // switch direction of ball travel to create bounce
         ballDirX = -ballDirX;
         // we impact ball angle when hitting it
@@ -504,7 +622,8 @@ function paddlePhysics() {
       // and if ball is travelling towards opponent (+ve direction)
       if (ballDirX > 0) {
         // stretch the paddle to indicate a hit
-        paddle2.scale.y = 15;
+        paddle2.scale.z = 2;
+        // paddle2.scale.y = 15; //removed this
         // switch direction of ball travel to create bounce
         ballDirX = -ballDirX;
         // we impact ball angle when hitting it
